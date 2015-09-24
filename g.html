@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html><html xmlns="http://www.w3.org/1999/xhtml">
+ <head>
+  <title>Дерево на HTML</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=windows-1251" />
+  <meta name="keywords" content="html, xhtml, css, java-script, div, дерево, TreeView" />  
+  <meta name="description" content="Реализация пользовательского элемента управления &apos;дерево&apos; TreeView средствами DHTML" />
+  <style type="text/css">
+.frame {/*Контейнер*/
+          width : 800px;
+          margin : auto;
+}
+
+.treeview { /*Дерево*/
+ 	  list-style:none;
+          margin : 0px;
+	  padding : 0px;
+	  font-family : "trebuchet ms", Verdana, Tahoma, Arial, Sans-Serif;
+	  font-size : 12px;
+	  color : #111;
+}
+
+.treeview li { /*Узел дерева*/
+          margin : 0px;
+          padding : 0px;
+          cursor : pointer;
+          padding-left : 16px;
+}
+
+.treeview ul { /*Поддерево*/
+ 	  list-style:none;
+          margin-left : 20px;
+          padding : 0px;
+	  color : #111;
+}
+
+.treeview div {/*Блок внутри списка*/
+          border-radius:5px;  
+          box-shadow: 0px 0px 10px rgb(0,0,0);
+          padding : 5px;
+          width : 600px;
+          overflow : auto; 
+}
+
+.treeview div &gt; h3 {/*Стиль для вывода заголовка третьего уровня в контексте блока дерева*/
+	  font-family : "trebuchet ms", Verdana, Tahoma, Arial, Sans-Serif;
+	  font-size : 16px;
+	  background-color : #eee;
+	  color : #777;
+          text-align : center;
+          margin-top : -5px;  
+          margin-left : -5px;  
+          margin-right : -5px;  
+          border-radius:5px 5px 0px 0px;  
+          border-bottom : 1px solid #ddd;
+}
+
+h1 {/*Стиль для вывода заголовка*/
+	  font-family : "trebuchet ms", Verdana, Tahoma, Arial, Sans-Serif;
+	  font-size : 20px;
+	  background-color : #eee;
+	  color : #777;
+          text-align : center;
+}
+
+h2 {/*Стиль для вывода названия каталога*/
+	  font-family : "trebuchet ms", Verdana, Tahoma, Arial, Sans-Serif;
+	  font-size : 16px;
+	  color : #333;
+          text-align : left;
+}
+
+.copyright {/*Стиль для вывода информации об авторском праве*/
+	  font-family : "trebuchet ms", Verdana, Tahoma, Arial, Sans-Serif;
+	  font-size : 11px;
+	  color : #111;
+          position : relative;
+          text-align : center;
+}
+
+pre {/*Стиль для вывода кода*/
+	  font-family : Courier New, Arial, Sans-Serif;
+	  font-size : 12px;
+	  color : #007;
+}
+
+code {/*Стиль для вывода кода*/
+	  font-family : Courier New, Arial, Sans-Serif;
+	  font-size : 12px;
+	  color : #007;
+	  background-color : #ddd;
+          border : 1px solid #ccc; 
+}
+ </style>
+<script type="text/javascript">
+//Инициализация всех деревьев на странице
+function OnInitTreeViews()
+{
+ var treeviews = document.getElementsByClassName('treeview');
+ for(var i = 0; i &lt; treeviews.length; i++)
+     OnInitTreeView(treeviews[i]);
+}
+
+//Инициализация отдельного дерева
+function OnInitTreeView(treeview)
+{
+ var nodes = SelectChildren(treeview, 'li');
+ for(var i = 0; i &lt; nodes.length; i++)
+    {
+      var node=nodes[i];
+      AddEventHandler(node, "click", OnTreeViewNodeClick);
+
+      var subtreeviews = SelectChildren(node, 'ul');
+      
+      if (subtreeviews.length &gt; 0)
+         {
+          node.style.background = 'url(images/plus.png) top left no-repeat';      
+
+          for(var j = 0; j &lt; subtreeviews.length; j++)
+             {
+              var subtreeview = subtreeviews[j];
+              subtreeview.style.display = 'none';
+
+              //Инициализируем поддеревья текущего дерева по рекурсии
+              OnInitTreeView(subtreeview);
+             }
+         }
+      else
+         {
+          var subdivs = SelectChildren(node, 'div');
+
+          if (subdivs.length &gt; 0)
+             {
+               node.style.background = 'url(images/plus.png) top left no-repeat';      
+
+               for(var j = 0; j &lt; subdivs.length; j++)
+                   subdivs[j].style.display = 'none';
+             }
+         }
+    }
+}
+
+//Кроссбраузерная функция добавления обработчика события
+function AddEventHandler(target, event, handler) 
+{
+  if (target.addEventListener)
+      target.addEventListener(event, handler, false);
+  else if (target.attachEvent)
+           target.attachEvent('on'+event, handler);
+       else target['on'+event]=function() {handler();};
+}
+
+//Функция выбора дочерних элементов по имени тэга
+function SelectChildren(node, childname)
+{
+ var result = [];
+
+ for(var i = 0; i &lt; node.childNodes.length; i++)
+    {
+     var child = node.childNodes[i];
+     if (child.nodeType==1) //Элемент
+        if (child.tagName.toLowerCase()==childname.toLowerCase())
+           result.push(child); 
+    }
+
+ return result; 
+}
+
+//Кроссбраузерная функция остановки всплавающего события
+function stopBubble(event){
+event.stopPropagation ? event.stopPropagation()
+ : event.cancelBubble = true;
+}
+
+//Обработчик щелчка мыши по узлу (li) дерева или любому другому дочернему элементу
+function OnTreeViewNodeClick(event)
+{
+ //Для firefox важно ссылку на текущее событие получать через аргумент
+ var event = event || window.event;
+ //Ссылка на текущий элемент li
+ var node = this;
+
+ //Выбираем содержимое текущего элемента li
+ var subcontents = SelectChildren(node, 'ul');
+
+ if (subcontents.length == 0)
+     subcontents = SelectChildren(node, 'div');
+
+ for(var i = 0; i &lt; subcontents.length; i++)
+ {
+     var subcontent = subcontents[i];
+
+     if (subcontent.style.display == 'none')
+        {
+         subcontent.style.display = 'block';
+         node.style.background = 'url(images/minus.png) top left no-repeat'; 
+        }
+     else
+        {
+         subcontent.style.display = 'none';              
+         node.style.background = 'url(images/plus.png) top left no-repeat'; 
+        } 
+ }
+
+ //Останавливаем обработку события;
+ stopBubble(event);
+}
+ </script>
+ <style type="text/css" /></head>
+ <body onload="OnInitTreeViews()">
+   <h1>Реализация элемента управления TreeView на HTML</h1>
+   <div class="frame"> 
+    <h2>Содержание</h2>
+    <ul class="treeview">
+     <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Общее описание
+      <div style="display: none;"><h3>Описание реализации TreeView на HTML</h3><p>Список, который должен идентифицироваться, как дерево должен иметь соответствующий класс: <code>&lt;ul class='treeview'&gt;</code>. После загрузки страницы производится поиск всех таких списков и инициализация по их структуре деревьев. Выполняется все это функцией <code>OnInitTreeViews()</code>, которая запускается сразу после загрузки страницы: <code>&lt;body onload="OnInitTreeViews()"&gt;</code>. В ходе инициализации всем элементам дерева - элементам <code>&lt;li&gt;</code> добавляется обработчик события щелчка мыши - функция <code>OnTreeViewNodeClick(event)</code>, которая и отвечает за показ и сокрытие содержимого каждого узла дерева. В двух словах об особенностях реализации данного варианта дерева на HTML все, а детали вы найдете в исходном коде этой страницы.</p></div> 
+     </li>
+     <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Разметка
+      <ul style="display: none;">
+       <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Заголовок страницы
+        <div style="display: none;"><h3>Стандартный заголовок xhtml документа</h3><p>Здесь ничего особенного нет. Перед вами заголовок обычной xhtml страницы.</p><pre>&lt;head&gt;
+ &lt;title&gt;Дерево на HTML&lt;/title&gt;
+ &lt;meta http-equiv="Content-Type" content="text/html; charset=windows-1251"/&gt;
+ &lt;meta name="keywords" content="html, xhtml, css, java-script, div, дерево, TreeView"/&gt;  
+ &lt;meta name="description" content="Реализация пользовательского элемента управления 'дерево' TreeView средствами DHTML"/&gt;
+ &lt;style type="text/css"&gt;
+ ...
+ &lt;/style&gt;
+ &lt;script type="text/javascript"&gt;
+...
+ &lt;/script&gt;
+&lt;/head&gt;</pre>
+        </div> 
+       </li> 
+       <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Тело страницы
+        <div style="display: none;"><h3>Разметка дерева</h3>
+         <p>Дерево - это список ul. Каждый узел дерева - это элемент списка li, который может содержать либо поддерево - вложенный список ul, либо блок div для размещения в нем дополнительной информации, как это сделано в текущем разделе.</p>
+        </div> 
+       </li> 
+      </ul>   
+     </li>
+     <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/minus.png) 0% 0% no-repeat;">Стили CSS
+      <ul style="display: block;">
+       <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/minus.png) 0% 0% no-repeat;">Основные стили
+        <ul style="display: block;">
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Дерево
+           <div style="display: none;"><h3>Стиль дерева - корневого списка ul</h3><pre>.treeview {
+ 	  list-style:none;
+          margin : 0px;
+	  padding : 0px;
+	  font-family : "trebuchet ms", Verdana, Tahoma, Arial, Sans-Serif;
+	  font-size : 12px;
+	  color : #111;
+}
+</pre>
+           </div> 
+          </li>
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Узел дерева
+           <div style="display: none;"><h3>Стиль узла дерева</h3><pre>.treeview li {
+          margin : 0px;
+          padding : 0px;
+          cursor : pointer;
+          padding-left : 16px;
+}
+</pre>
+           </div> 
+          </li>
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Поддерево
+           <div style="display: none;"><h3>Стиль поддерева - некорневого списка ul</h3><pre>.treeview ul {
+ 	  list-style:none;
+          margin-left : 20px;
+          padding : 0px;
+	  color : #111;
+}
+</pre>
+           </div> 
+          </li>
+        </ul> 
+       </li> 
+       <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/minus.png) 0% 0% no-repeat;">Вспомогательные стили
+        <ul style="display: block;">
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Контейнер
+           <div style="display: none;"><h3>Стиль контейнера</h3><p>Значение внешнего отступа (margin) выбирается браузером автоматически, что сделано для размещения контейнера по центру окна.</p><pre>.frame {
+          width : 800px;
+          margin : auto;
+}
+</pre>
+           </div> 
+          </li>
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Блок внутри дерева
+           <div style="display: none;"><h3>Стиль контейнера</h3><p>Ширина блока фиксированная, поэтому на случай, если неформатируемый текст, например, исходный код разметки не влезет по ширине, автоматически появится прокрутка благодаря свойству overflow : auto.</p><pre>.treeview div {
+          border-radius:5px;  
+          box-shadow: 0px 0px 10px rgb(0,0,0);
+          padding : 5px;
+          width : 400px;
+          overflow : auto; 
+}
+</pre>
+           </div> 
+          </li>
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Заголовок блока внутри дерева
+           <div style="display: none;"><h3>Стиль контейнера</h3><p>Стиль предназначен для заголовка третьего уровня, который является непосредственным дочерним элементом, а не просто потомком блока div. По этой причине в селекторе используется символ '&gt;'. Для подгонки контура заголовка под контур блока div внешнее смещение (margin) имеет отрицательные значения, равные величине внутреннего отступа (padding) блока div.</p><pre>.treeview div &gt; h3 {
+	  font-family : "trebuchet ms", Verdana, Tahoma, Arial, Sans-Serif;
+	  font-size : 16px;
+	  background-color : #eee;
+	  color : #777;
+          text-align : center;
+          margin-top : -5px;  
+          margin-left : -5px;  
+          margin-right : -5px;  
+          border-radius:5px 5px 0px 0px;  
+          border-bottom : 1px solid #ddd;
+}</pre>
+           </div> 
+          </li>
+        </ul> 
+       </li> 
+      </ul>   
+     </li>
+     <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/minus.png) 0% 0% no-repeat;">Java-Script
+      <ul style="display: block;">
+       <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Инициализация
+        <div style="display: none;"><h3>Функции OnInitTreeViews() и OnInitTreeView(treeview)</h3><pre>//Инициализация всех деревьев на странице
+function OnInitTreeViews()
+{
+ var treeviews = document.getElementsByClassName('treeview');
+ for(var i = 0; i &lt; treeviews.length; i++)
+     OnInitTreeView(treeviews[i]);
+}
+
+//Инициализация отдельного дерева
+function OnInitTreeView(treeview)
+{
+ var nodes = SelectChildren(treeview, 'li');
+ for(var i = 0; i &lt; nodes.length; i++)
+    {
+      var node=nodes[i];
+      AddEventHandler(node, "click", OnTreeViewNodeClick);
+
+      var subtreeviews = SelectChildren(node, 'ul');
+      
+      if (subtreeviews.length &gt; 0)
+         {
+          node.style.background = 'url(images/plus.png) top left no-repeat';      
+
+          for(var j = 0; j &lt; subtreeviews.length; j++)
+             {
+              var subtreeview = subtreeviews[j];
+              subtreeview.style.display = 'none';
+
+              //Инициализируем поддеревья текущего дерева по рекурсии
+              OnInitTreeView(subtreeview);
+             }
+         }
+      else
+         {
+          var subdivs = SelectChildren(node, 'div');
+
+          if (subdivs.length &gt; 0)
+             {
+               node.style.background = 'url(images/plus.png) top left no-repeat';      
+
+               for(var j = 0; j &lt; subdivs.length; j++)
+                   subdivs[j].style.display = 'none';
+             }
+         }
+    }
+}
+</pre>
+        </div> 
+       </li> 
+       <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Обработка событий
+        <div style="display: none;"><h3>Функция OnTreeViewNodeClick(event)</h3><pre>//Обработчик щелчка мыши по узлу (li) дерева или любому другому дочернему элементу
+function OnTreeViewNodeClick(event)
+{
+ //Для firefox важно ссылку на текущее событие получать через аргумент
+ var event = event || window.event;
+ //Ссылка на текущий элемент li
+ var node = this;
+
+ //Выбираем содержимое текущего элемента li
+ var subcontents = SelectChildren(node, 'ul');
+
+ if (subcontents.length == 0)
+     subcontents = SelectChildren(node, 'div');
+
+ for(var i = 0; i &lt; subcontents.length; i++)
+ {
+     var subcontent = subcontents[i];
+
+     if (subcontent.style.display == 'none')
+        {
+         subcontent.style.display = 'block';
+         node.style.background = 'url(images/minus.png) top left no-repeat'; 
+        }
+     else
+        {
+         subcontent.style.display = 'none';              
+         node.style.background = 'url(images/plus.png) top left no-repeat'; 
+        } 
+ }
+
+ //Останавливаем обработку события;
+ stopBubble(event);
+}
+</pre>
+        </div> 
+       </li> 
+       <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/minus.png) 0% 0% no-repeat;">Сервисные и кроссбраузерные функции
+        <ul style="display: block;">
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Добавление обработчика события
+           <div style="display: none;"><h3>Фукцния AddEventHandler(target, event, handler)</h3><pre>//Кроссбраузерная функция добавления обработчика события
+function AddEventHandler(target, event, handler) 
+{
+  if (target.addEventListener)
+      target.addEventListener(event, handler, false);
+  else if (target.attachEvent)
+           target.attachEvent('on'+event, handler);
+       else target['on'+event]=function() {handler();};
+}
+</pre>
+           </div> 
+          </li>
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Остановка всплывающего события
+           <div style="display: none;"><h3>Фукцния stopBubble(event)</h3><p>В случае, когда один элемент вложен в другой, как это имеет место с элементами дерева, обработка события происходит снизу вверху. Сначала обработчик вызывается для элемента, с которым событие произошло непосредственно, и, если в ходе обработки 'всплытие' события запрещено не было, обработчик будет вызван для его непосредственного родителя и так далее. В случае с деревом 'всплытие' события необходимо запрещать, иначе обработчик будет вызван для всех узлов от того, по которому щелкнули и до самого корня. Дерево в целом будет вести себя при этом неадекватно, поскольку его ветки будут неоднократно сворачиваться и разворачиваться.</p><pre>//Кроссбраузерная функция остановки всплавающего события
+function stopBubble(event){
+event.stopPropagation ? event.stopPropagation()
+ : event.cancelBubble = true;
+}</pre>
+           </div> 
+          </li>
+          <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Выбор дочерних элементов
+           <div style="display: none;"><h3>Фукцния SelectChildren(node, childname)</h3><pre>//Функция выбора дочерних элементов по имени тэга
+function SelectChildren(node, childname)
+{
+ var result = [];
+
+ for(var i = 0; i &lt; node.childNodes.length; i++)
+    {
+     var child = node.childNodes[i];
+     if (child.nodeType==1) //Элемент
+        if (child.tagName.toLowerCase()==childname.toLowerCase())
+           result.push(child); 
+    }
+
+ return result; 
+}</pre>
+           </div> 
+          </li>
+        </ul> 
+       </li> 
+      </ul>   
+     </li>
+     <li style="background: url(http://codingcraft.ru/resources/HTML/templates/images/plus.png) 0% 0% no-repeat;">Дополнительно
+      <ul style="display: none;">
+       <li><a href="http://codingcraft.ru/html_xhtml_css.php" target="_blank">Язык разметки HTML/XHTML</a></li> 
+       <li><a href="http://codingcraft.ru/html_xhtml_css.php#css" target="_blank">Стандарт CSS</a></li> 
+       <li><a href="http://codingcraft.ru/web-design/templates.php" target="_blank">Другие примеры веб-дизайна</a></li> 
+       <li><a href="http://codingcraft.ru/glossary.php" target="_blank">Глоссарий</a></li> 
+      </ul>   
+     </li>
+    </ul>
+   </div> 
+   <div style="margin:70px">
+    <p class="copyright">Учебные материалы сайта <a href="http://codingcraft.ru/" target="_blank">codingcraft.ru</a> по теме <a href="http://codingcraft.ru/web-design/templates.php" target="_blank">основы веб-дизайна</a>. Все права защищены © 2012</p>
+   </div>
+ </body>
+</html>
